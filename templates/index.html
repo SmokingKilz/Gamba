@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS2 Coinflip: CT vs T</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #e0eafc, #cfdef3); /* Soft gradient */
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            color: #2c3e50;
+            margin: 40px 0 20px 0;
+            text-align: center;
+        }
+
+        /* Balance Container */
+        #balance-container {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            text-align: right;
+            z-index: 1000;
+        }
+
+        #balance {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #debug {
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #debug:hover {
+            background-color: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        /* Game Sections */
+        #game-sections {
+            margin: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+
+        .game-section {
+            width: 28%; /* Reduced width for smaller boxes */
+            min-width: 250px; /* Minimum width for responsiveness */
+            background: #fff;
+            padding: 15px; /* Reduced padding */
+            border-radius: 10px; /* Slightly reduced border radius */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1); /* Slightly smaller shadow */
+            margin-bottom: 15px; /* Reduced margin */
+        }
+
+        .game-header {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18px; /* Slightly smaller font */
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px; /* Reduced margin */
+            border-bottom: 1px solid #ecf0f1; /* Thinner border */
+            padding-bottom: 8px; /* Reduced padding */
+        }
+
+        /* Game Slot Layout */
+        .game-slot {
+            background: #ecf0f1;
+            width: 100%;
+            height: 200px; /* Reduced height */
+            padding: 10px; /* Reduced padding */
+            border-radius: 8px; /* Slightly reduced border radius */
+            position: relative;
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-slot.available-slot:hover {
+            transform: translateY(-3px); /* Less movement on hover */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15); /* Slightly smaller shadow */
+        }
+
+        /* Profiles Container */
+        .profiles-container {
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center;
+            width: 100%;
+            gap: 20px; /* Reduced gap between profiles */
+        }
+
+        .player-profile, .bot-profile {
+            text-align: center;
+            flex: 0 0 40%; /* Each profile takes up 40% of the container */
+        }
+
+        .player-profile img, .bot-profile img {
+            width: 60px; /* Reduced size */
+            height: 60px; /* Reduced size */
+            border-radius: 50%;
+            border: 2px solid #3498db; /* Thinner border */
+            margin-bottom: 5px;
+        }
+
+        /* Wager Amounts */
+        .wager-amount {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* Winning and Losing Styles */
+        .winning {
+            color: green;
+        }
+
+        .losing {
+            color: red;
+        }
+
+        /* Wager and Buttons Section */
+        .wager-section {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Countdown Circle */
+        .countdown-circle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px; /* Reduced font size */
+            background-color: #fff;
+            width: 50px; /* Reduced size */
+            height: 50px; /* Reduced size */
+            border-radius: 50%;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1); /* Slightly smaller shadow */
+            display: none;
+            z-index: 500;
+            /* Flexbox for perfect centering */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Coin Container */
+        .coin-container {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px; /* Reduced size */
+            height: 80px; /* Reduced size */
+            perspective: 1000px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .coin {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Coin Faces */
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background-size: cover;
+            border-radius: 50%;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+
+        .coin-front {
+            background-image: url('/static/images/ct-coin.png'); /* Update with your image path */
+        }
+
+        .coin-back {
+            background-image: url('/static/images/t-coin.png'); /* Update with your image path */
+            transform: rotateY(180deg);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6); /* Semi-transparent background */
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto; /* 10% from the top and centered */
+            padding: 20px; /* Reduced padding */
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 350px; /* Reduced max-width */
+            border-radius: 8px; /* Slightly reduced border radius */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3); /* Slightly smaller shadow */
+            position: relative;
+            text-align: center;
+        }
+
+        /* Modal Buttons */
+        #modal-ct-btn, #modal-t-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px; /* Reduced border radius */
+            cursor: pointer;
+            padding: 8px 16px; /* Reduced padding */
+            margin: 5px;
+            font-size: 14px; /* Reduced font size */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #modal-ct-btn:hover, #modal-t-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        #modal-close-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 20px; /* Reduced border radius */
+            cursor: pointer;
+            padding: 8px 16px; /* Reduced padding */
+            margin-top: 10px; /* Reduced margin */
+            font-size: 14px; /* Reduced font size */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #modal-close-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* Error Message */
+        #error-message, #modal-error-message {
+            color: red;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        /* History Slots Styling */
+        #history-slots .game-slot {
+            opacity: 0.8;
+            cursor: default;
+        }
+
+        /* Greyed Out Loser's Profile */
+        .loser {
+            opacity: 0.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #game-sections {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .game-section {
+                width: 80%;
+            }
+
+            .coin-container, .countdown-circle {
+                width: 60px; /* Further reduced size */
+                height: 60px; /* Further reduced size */
+            }
+
+            .coin-face {
+                width: 60px; /* Further reduced size */
+                height: 60px; /* Further reduced size */
+            }
+
+            .wager-amount {
+                font-size: 12px; /* Reduced font size for smaller screens */
+            }
+        }
+
+        /* Focus Styles for Accessibility */
+        button:focus {
+            outline: 2px solid #2980b9;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="balance-container">
+        <div id="balance">Balance: 100</div>
+        <button id="debug" aria-label="Add 100 Coins"><i class="fas fa-coins"></i> +100 Coins</button>
+    </div>
+
+    <h1>CS2 Coinflip Game: CT vs T</h1>
+
+    <!-- Game Sections -->
+    <div id="game-sections">
+        <!-- Available Games Section -->
+        <div class="game-section" id="available-games">
+            <div class="game-header">Available Games</div>
+            <div id="available-game-slots">
+                <div class="game-slot available-slot" id="slot-1">Empty Slot</div>
+                <div class="game-slot available-slot" id="slot-2">Empty Slot</div>
+                <div class="game-slot available-slot" id="slot-3">Empty Slot</div>
+            </div>
+        </div>
+
+        <!-- My Games Section -->
+        <div class="game-section">
+            <div class="game-header">My Games</div>
+            <div id="my-game-slots"></div>
+        </div>
+
+        <!-- History Section -->
+        <div class="game-section">
+            <div class="game-header">Game History</div>
+            <div id="history-slots"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Game Setup -->
+    <div id="game-modal" class="modal">
+        <div class="modal-content">
+            <h3>Start a New Game</h3>
+            <label for="modal-wager">Wager Amount:</label>
+            <input type="number" id="modal-wager" value="10" min="1" max="100">
+            <br><br>
+            <button id="modal-ct-btn" aria-label="Choose CT (Counter-Terrorist)"><i class="fas fa-shield-alt"></i> CT (Counter-Terrorist)</button>
+            <button id="modal-t-btn" aria-label="Choose T (Terrorist)"><i class="fas fa-skull-crossbones"></i> T (Terrorist)</button>
+            <br><br>
+            <button id="modal-close-btn" aria-label="Cancel and close modal"><i class="fas fa-times"></i> Cancel</button>
+            <!-- Error Message Display -->
+            <div id="modal-error-message"></div>
+        </div>
+    </div>
+
+    <!-- Error Message Display -->
+    <div id="error-message"></div>
+
+    <script>
+        let selectedSlot = null;
+        let playerChoice = null;
+
+        function updateBalance(balance) {
+            document.getElementById('balance').innerText = `Balance: ${balance}`;
+        }
+
+        function randomFlipResult() {
+            return Math.random() < 0.5 ? "CT" : "T";
+        }
+
+        function isValidWager(wager, balance) {
+            return Number.isInteger(wager) && wager > 0 && wager <= balance;
+        }
+
+        function showError(message) {
+            document.getElementById('modal-error-message').innerText = message;
+        }
+
+        function setupSlotClickListener(slotElement) {
+            slotElement.onclick = function () {
+                if (slotElement.innerHTML === 'Empty Slot') {
+                    openModal(slotElement.id);
+                }
+            };
+        }
+
+        function moveSlotToMyGames(slotElement, wager, choice) {
+            const myGameSlots = document.getElementById('my-game-slots');
+            slotElement.innerHTML = `
+                <div class="profiles-container">
+                    <div class="player-profile">
+                        <img src="/static/images/${choice.toLowerCase()}-coin.png" alt="${choice}">
+                        <div>You</div>
+                        <div class="wager-amount">Wager: ${wager}</div>
+                    </div>
+                    <div class="bot-profile" id="bot-profile-${slotElement.id}">
+                        <!-- Bot profile will be added here after calling bot -->
+                    </div>
+                </div>
+                <div class="wager-section" id="wager-section-${slotElement.id}">
+                    <button class="call-bot-btn" aria-label="Call the Bot"><i class="fas fa-robot"></i> Call Bot</button>
+                </div>
+                <div id="countdown-${slotElement.id}" class="countdown-circle">3</div>
+                <div id="coin-container-${slotElement.id}" class="coin-container">
+                    <div class="coin" id="coin-${slotElement.id}">
+                        <div class="coin-face coin-front"></div>
+                        <div class="coin-face coin-back"></div>
+                    </div>
+                </div>
+            `;
+            myGameSlots.appendChild(slotElement);
+
+            // Remove the slot from Available Games
+            slotElement.classList.remove('available-slot');
+            slotElement.classList.add('my-game-slot');
+
+            // Add event listener for "Call Bot" button
+            slotElement.querySelector('.call-bot-btn').addEventListener('click', function () {
+                callBot(slotElement, wager, choice);
+            });
+        }
+
+        function callBot(slotElement, wager, playerChoice) {
+            const botProfileDiv = document.getElementById(`bot-profile-${slotElement.id}`);
+            const wagerSectionDiv = document.getElementById(`wager-section-${slotElement.id}`);
+
+            // Add bot's profile
+            const botChoice = playerChoice === "CT" ? "T" : "CT"; // Bot takes opposite side
+            botProfileDiv.innerHTML = `
+                <img src="/static/images/${botChoice.toLowerCase()}-coin.png" alt="${botChoice}">
+                <div>BOT</div>
+                <div class="wager-amount">Wager: ${wager}</div>
+            `;
+
+            // Replace "Call Bot" button with "Ready" button
+            wagerSectionDiv.innerHTML = `<button class="ready-btn" aria-label="Ready to start the game"><i class="fas fa-check-circle"></i> Ready</button>`;
+
+            // Add event listener for "Ready" button
+            slotElement.querySelector('.ready-btn').addEventListener('click', function () {
+                startCountdown(slotElement, wager, playerChoice, botChoice);
+            });
+        }
+
+        function startCountdown(slotElement, wager, playerChoice, botChoice) {
+            const countdownElement = document.getElementById(`countdown-${slotElement.id}`);
+            let countdown = 3;
+            countdownElement.style.display = 'flex'; // Flexbox for centering
+            countdownElement.innerText = countdown;
+
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    countdownElement.innerText = countdown;
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownElement.style.display = 'none';
+                    playCoinflip(slotElement, wager, playerChoice, botChoice);
+                }
+            }, 1000);
+        }
+
+        function playCoinflip(slotElement, wager, playerChoice, botChoice) {
+            let currentBalance = parseInt(document.getElementById('balance').innerText.replace('Balance: ', ''));
+            const coinContainer = document.getElementById(`coin-container-${slotElement.id}`);
+            const coin = document.getElementById(`coin-${slotElement.id}`);
+            const playerProfile = slotElement.querySelector('.player-profile');
+            const botProfile = slotElement.querySelector('.bot-profile');
+
+            // Show the coin container
+            coinContainer.style.display = 'block';
+
+            // Reset coin rotation to 0deg
+            coin.style.transition = 'none';
+            coin.style.transform = 'rotateY(0deg)';
+            coin.offsetHeight; // Trigger reflow
+
+            // Randomly decide the coin flip result
+            let result = randomFlipResult();
+
+            // Generate a random number of rotations between 3 and 6
+            let randomRotations = Math.floor(Math.random() * 4) + 3; // 3 to 6 rotations
+
+            // Determine the rotation angle based on the result
+            let rotationAngle;
+            if (result === "CT") {
+                rotationAngle = randomRotations * 360; // Land on front side
+            } else {
+                rotationAngle = (randomRotations * 360) + 180; // Land on back side
+            }
+
+            // Start the flip animation
+            coin.style.transition = 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)';
+            coin.style.transform = `rotateY(${rotationAngle}deg)`;
+
+            setTimeout(() => {
+                let winner, loser;
+                if (playerChoice === result) {
+                    winner = 'player';
+                    loser = 'bot';
+                    currentBalance += wager * 2; // Add double the wager amount
+                } else {
+                    winner = 'bot';
+                    loser = 'player';
+                    // Wager amount was already deducted
+                }
+
+                updateBalance(currentBalance);
+
+                // Update wager amounts
+                const playerWagerDiv = playerProfile.querySelector('.wager-amount');
+                const botWagerDiv = botProfile.querySelector('.wager-amount');
+
+                // Remove previous classes
+                playerWagerDiv.classList.remove('winning', 'losing');
+                botWagerDiv.classList.remove('winning', 'losing');
+
+                if (winner === 'player') {
+                    playerWagerDiv.innerHTML = `${wager * 2}`;
+                    playerWagerDiv.classList.add('winning');
+
+                    botWagerDiv.innerHTML = `-${wager}`;
+                    botWagerDiv.classList.add('losing');
+                } else {
+                    botWagerDiv.innerHTML = `${wager * 2}`;
+                    botWagerDiv.classList.add('winning');
+
+                    playerWagerDiv.innerHTML = `-${wager}`;
+                    playerWagerDiv.classList.add('losing');
+                }
+
+                // Style the winner and loser
+                if (winner === 'player') {
+                    playerProfile.classList.remove('loser');
+                    botProfile.classList.add('loser');
+                } else {
+                    botProfile.classList.remove('loser');
+                    playerProfile.classList.add('loser');
+                }
+
+                // Replace buttons with 'Close' button after the game ends
+                const wagerSectionDiv = document.getElementById(`wager-section-${slotElement.id}`);
+                wagerSectionDiv.innerHTML = `<button class="close-btn" aria-label="Close the game and move to history"><i class="fas fa-times-circle"></i> Close</button>`;
+
+                // Add event listener for 'Close' button
+                slotElement.querySelector('.close-btn').addEventListener('click', function () {
+                    moveToHistory(slotElement);
+                });
+
+            }, 1000);  // 1 second delay for the "flipping" animation
+        }
+
+        function moveToHistory(slotElement) {
+            // Clone the slot element to move to 'History'
+            const historySlot = slotElement.cloneNode(true);
+
+            // Remove the 'Close' button from the history slot
+            const closeBtn = historySlot.querySelector('.close-btn');
+            if (closeBtn) closeBtn.remove();
+
+            // Grey out the entire history slot to indicate it's completed
+            historySlot.style.opacity = '0.6';
+            historySlot.style.pointerEvents = 'none';
+
+            // Append the cloned slot to the 'History' section
+            document.getElementById('history-slots').appendChild(historySlot);
+
+            // Reset the original slot for reuse
+            resetGameSlot(slotElement);
+        }
+
+        function resetGameSlot(slotElement) {
+            slotElement.innerHTML = 'Empty Slot';
+
+            // Remove any classes or styles added during the game
+            slotElement.classList.remove('my-game-slot', 'loser');
+            slotElement.classList.add('available-slot');
+
+            // Re-add click event listener for empty slot
+            setupSlotClickListener(slotElement);
+
+            // Move the slot back to 'Available Games' section
+            document.getElementById('available-game-slots').appendChild(slotElement);
+        }
+
+        // Open modal to start a new game
+        function openModal(slotId) {
+            selectedSlot = slotId;
+            document.getElementById('game-modal').style.display = 'block';
+        }
+
+        // Close the modal
+        function closeModal() {
+            document.getElementById('game-modal').style.display = 'none';
+            document.getElementById('modal-error-message').innerText = '';
+        }
+
+        // Event listeners for modal buttons
+        document.getElementById('modal-ct-btn').addEventListener('click', function () {
+            const wager = parseInt(document.getElementById('modal-wager').value);
+            const balance = parseInt(document.getElementById('balance').innerText.replace('Balance: ', ''));
+            if (!isValidWager(wager, balance)) {
+                showError("Invalid wager amount.");
+                return;
+            }
+            playerChoice = "CT";
+            updateBalance(balance - wager); // Deduct wager amount immediately
+            moveSlotToMyGames(document.getElementById(selectedSlot), wager, playerChoice);
+            closeModal();
+        });
+
+        document.getElementById('modal-t-btn').addEventListener('click', function () {
+            const wager = parseInt(document.getElementById('modal-wager').value);
+            const balance = parseInt(document.getElementById('balance').innerText.replace('Balance: ', ''));
+            if (!isValidWager(wager, balance)) {
+                showError("Invalid wager amount.");
+                return;
+            }
+            playerChoice = "T";
+            updateBalance(balance - wager); // Deduct wager amount immediately
+            moveSlotToMyGames(document.getElementById(selectedSlot), wager, playerChoice);
+            closeModal();
+        });
+
+        // Close modal when clicking "Cancel"
+        document.getElementById('modal-close-btn').addEventListener('click', function () {
+            closeModal();
+        });
+
+        // Initialize click listeners for available slots
+        document.querySelectorAll('.game-slot.available-slot').forEach(slot => {
+            setupSlotClickListener(slot);
+        });
+
+        // Debug button to add 100 coins
+        document.getElementById('debug').addEventListener('click', function () {
+            let currentBalance = parseInt(document.getElementById('balance').innerText.replace('Balance: ', ''));
+            updateBalance(currentBalance + 100);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
